@@ -1,0 +1,63 @@
+container_runtime: containerd
+
+agent:
+  acquisition:
+    - namespace: envoy-gateway-system
+      podName: envoy-default-*
+      poll_without_inotify: true
+      program: envoy
+  env:
+    - name: COLLECTIONS
+      value: "yanis-kouidri/envoy"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+appsec:
+  enabled: true
+  acquisitions:
+    - appsec_configs:
+        - crowdsecurity/appsec-default
+      labels:
+        type: appsec
+      listen_addr: 0.0.0.0:7422
+      path: /
+      source: appsec
+  env:
+    - name: COLLECTIONS
+      value: "crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+lapi:
+  env:
+    - name: ENROLL_INSTANCE_NAME
+      value: "homelab-aks"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 500Mi
+
+config:
+  config.yaml.local: |
+    api:
+      server:
+        auto_registration:
+          enabled: true
+          token: "${REGISTRATION_TOKEN}"
+          allowed_ranges:
+            - "127.0.0.1/32"
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"

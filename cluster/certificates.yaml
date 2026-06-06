@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: authentik-tls
+  namespace: envoy-gateway-system
+spec:
+  secretName: authentik-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - auth.seaze.dev
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: seazedev-tls
+  namespace: envoy-gateway-system
+spec:
+  secretName: seazedev-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - seaze.dev

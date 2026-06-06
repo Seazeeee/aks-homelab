@@ -1,0 +1,18 @@
+fullnameOverride: crowdsec-envoy-bouncer
+
+config:
+  bouncer:
+    enabled: true
+    lapiURL: http://crowdsec-service.crowdsec.svc.cluster.local:8080
+    apiKeySecretRef:
+      name: crowdsec-envoy-bouncer-secrets
+      key: api-key
+  waf:
+    enabled: true
+    appSecURL: http://crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
+    apiKeySecretRef:
+      name: crowdsec-envoy-bouncer-secrets
+      key: api-key
+
+securityPolicy:
+  create: false

@@ -1,0 +1,57 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: crowdsec-policy
+  namespace: envoy-gateway-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: homelab-gateway
+  extAuth:
+    failOpen: false
+    grpc:
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: crowdsec-envoy-bouncer
+          namespace: envoy-gateway-system
+          port: 8080
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: authentik-forwardauth-policy
+  namespace: default
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: homelab-route-protected
+  extAuth:
+    failOpen: false
+    recomputeRoute: true
+    headersToExtAuth:
+      - X-Forwarded-For
+      - X-Real-Ip
+      - X-Forwarded-Host
+      - X-Forwarded-Proto
+      - accept
+      - cookie
+      - authorization
+    http:
+      backendRefs:
+        - kind: Service
+          name: authentik-server
+          namespace: authentik
+          port: 80
+      path: /outpost.goauthentik.io/auth/envoy
+      headersToBackend:
+        - cookie
+        - authorization
+        - X-Forwarded-Host
+        - X-Forwarded-Proto
+        - X-Authentik-Username
+        - X-Authentik-Email
+        - X-Authentik-Name
+        - X-Authentik-Uid

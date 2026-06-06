@@ -1,0 +1,820 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: homepage
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: homepage
+data:
+  Caddyfile: |
+    :80 {
+      root * /usr/share/caddy
+
+      header {
+        Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+      }
+
+      route {
+        templates
+
+        handle /dashboard* {
+          rewrite * /index.html
+          file_server
+        }
+
+        handle {
+          file_server
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-html
+  namespace: homepage
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="auth-username" content='{{ .Req.Header.Get "X-Authentik-Username" }}'>
+      <meta name="auth-name" content='{{ .Req.Header.Get "X-Authentik-Name" }}'>
+      <meta name="auth-email" content='{{ .Req.Header.Get "X-Authentik-Email" }}'>
+      <title>seaze.dev</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+      <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+          --bg: #080c10;
+          --surface: rgba(255,255,255,0.02);
+          --border: rgba(255,255,255,0.07);
+          --text: rgba(255,255,255,0.85);
+          --muted: rgba(255,255,255,0.4);
+          --dim: rgba(255,255,255,0.2);
+          --green: #3fb950;
+          --blue: rgba(56,139,253,0.7);
+        }
+
+        body {
+          min-height: 100vh;
+          background: var(--bg);
+          font-family: 'DM Sans', sans-serif;
+          color: var(--text);
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .grid-bg {
+          position: fixed; inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+          background-size: 40px 40px;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        /* NAV */
+        nav {
+          position: relative; z-index: 10;
+          border-bottom: 0.5px solid var(--border);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+
+        .nav-inner {
+          max-width: 960px; margin: 0 auto;
+          padding: 0 2rem;
+          height: 52px;
+          display: flex; align-items: center;
+          justify-content: space-between;
+        }
+
+        .nav-logo {
+          font-family: 'DM Mono', monospace;
+          font-size: 13px; font-weight: 500;
+          color: var(--text); text-decoration: none;
+          letter-spacing: -0.01em;
+        }
+
+        .nav-logo span { color: var(--dim); }
+
+        .nav-center {
+          display: flex; gap: 2rem;
+        }
+
+        .nav-center a {
+          font-size: 12px; font-weight: 400;
+          color: var(--dim);
+          text-decoration: none;
+          letter-spacing: 0.06em;
+          transition: color 0.15s;
+        }
+
+        .nav-center a:hover { color: var(--text); }
+        .nav-center a.active { color: var(--text); }
+
+        /* USER PILL */
+        .nav-user {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .user-pill {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 5px 11px 5px 8px;
+          background: rgba(255,255,255,0.04);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 0.5px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          cursor: pointer;
+          transition: all 0.2s;
+          user-select: none;
+        }
+
+        .user-pill:hover {
+          background: rgba(255,255,255,0.07);
+          border-color: rgba(255,255,255,0.13);
+        }
+
+        .user-pill-dot {
+          width: 5px; height: 5px;
+          border-radius: 50%;
+          background: var(--green);
+          flex-shrink: 0;
+        }
+
+        .user-pill-name {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: var(--muted);
+          letter-spacing: 0.04em;
+        }
+
+        .user-pill-chevron {
+          width: 8px; height: 8px;
+          color: var(--dim);
+          transition: transform 0.2s;
+        }
+
+        .user-pill-chevron.open { transform: rotate(180deg); }
+
+        /* DROPDOWN */
+        .user-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          background: rgba(13,17,23,0.95);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 0.5px solid rgba(255,255,255,0.09);
+          border-radius: 10px;
+          min-width: 180px;
+          padding: 6px;
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(-4px);
+          transition: all 0.15s;
+          z-index: 100;
+        }
+
+        .user-dropdown.open {
+          opacity: 1;
+          pointer-events: all;
+          transform: translateY(0);
+        }
+
+        .dropdown-header {
+          padding: 8px 10px 10px;
+          border-bottom: 0.5px solid var(--border);
+          margin-bottom: 4px;
+        }
+
+        .dropdown-name {
+          font-size: 12px; font-weight: 500;
+          color: var(--text);
+          margin-bottom: 2px;
+        }
+
+        .dropdown-email {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: var(--dim);
+          letter-spacing: 0.02em;
+        }
+
+        .dropdown-item {
+          display: flex; align-items: center; gap: 8px;
+          padding: 7px 10px;
+          border-radius: 6px;
+          font-size: 12px; color: var(--muted);
+          text-decoration: none;
+          transition: all 0.15s;
+          cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+          background: rgba(255,255,255,0.05);
+          color: var(--text);
+        }
+
+        .dropdown-item svg {
+          width: 13px; height: 13px;
+          flex-shrink: 0;
+          opacity: 0.6;
+        }
+
+        .dropdown-item.danger { color: rgba(248,81,73,0.7); }
+        .dropdown-item.danger:hover {
+          background: rgba(248,81,73,0.08);
+          color: rgba(248,81,73,0.9);
+        }
+
+        .dropdown-divider {
+          height: 0.5px;
+          background: var(--border);
+          margin: 4px 0;
+        }
+
+        /* MAIN */
+        main {
+          position: relative; z-index: 1;
+          flex: 1;
+          max-width: 960px; margin: 0 auto;
+          width: 100%;
+          padding: 4rem 2rem;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeUp 0.4s ease forwards; }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* HOME PAGE */
+        .uc-eyebrow {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; color: var(--dim);
+          letter-spacing: 0.1em;
+          margin-bottom: 1.5rem;
+        }
+
+        .uc-eyebrow .dot {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: rgba(255,165,0,0.6);
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+
+        .uc-title {
+          font-size: clamp(28px, 5vw, 42px);
+          font-weight: 400;
+          line-height: 1.2;
+          letter-spacing: -0.03em;
+          color: var(--text);
+          margin-bottom: 1.25rem;
+        }
+
+        .uc-title em {
+          font-style: italic;
+          color: var(--muted);
+        }
+
+        .uc-desc {
+          font-size: 14px;
+          color: var(--dim);
+          font-weight: 300;
+          max-width: 400px;
+          line-height: 1.7;
+          margin-bottom: 2rem;
+        }
+
+        .uc-rule {
+          width: 32px; height: 0.5px;
+          background: var(--border);
+          margin-bottom: 1.5rem;
+        }
+
+        .uc-meta {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px;
+          color: var(--dim);
+          letter-spacing: 0.08em;
+        }
+
+        /* BLOG PAGE */
+        .blog-eyebrow {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; color: var(--dim);
+          letter-spacing: 0.1em;
+          margin-bottom: 2rem;
+        }
+
+        .blog-empty {
+          font-size: 13px;
+          color: var(--dim);
+          font-weight: 300;
+          font-style: italic;
+        }
+
+        /* LOGIN PAGE */
+        .login-wrap {
+          max-width: 360px;
+          margin: 0 auto;
+          text-align: center;
+        }
+
+        .security-row {
+          justify-content: center;
+        }
+
+        .login-label {
+          display: flex; align-items: center; gap: 6px;
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; color: rgba(63,185,80,0.5);
+          letter-spacing: 0.08em;
+          margin-bottom: 1.5rem;
+        }
+
+        .dot-green {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: var(--green);
+          animation: pulse 2s infinite;
+        }
+
+        .login-heading {
+          font-size: 22px; font-weight: 500;
+          letter-spacing: -0.02em;
+          color: var(--text);
+          margin-bottom: 4px;
+        }
+
+        .login-sub {
+          font-size: 13px; color: var(--dim);
+          font-weight: 300; margin-bottom: 1.5rem;
+        }
+
+        .login-rule {
+          height: 0.5px;
+          background: var(--border);
+          margin-bottom: 1.5rem;
+        }
+
+        .security-row {
+          display: flex; gap: 8px;
+          margin-bottom: 1.5rem;
+        }
+
+        .sec-badge {
+          flex: 1; padding: 7px 8px;
+          background: rgba(56,139,253,0.04);
+          border: 0.5px solid rgba(56,139,253,0.2);
+          border-radius: 7px; text-align: center;
+          font-family: 'DM Mono', monospace;
+          font-size: 9px; color: rgba(56,139,253,0.5);
+          letter-spacing: 0.04em;
+        }
+
+        .sign-in-btn {
+          display: flex; align-items: center; justify-content: center;
+          width: 100%; padding: 11px;
+          background: rgba(255,255,255,0.05);
+          border: 0.5px solid rgba(255,255,255,0.1);
+          border-radius: 9px;
+          color: var(--muted);
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px; font-weight: 500;
+          text-decoration: none;
+          transition: all 0.2s;
+          letter-spacing: 0.01em;
+        }
+
+        .sign-in-btn:hover {
+          background: rgba(255,255,255,0.08);
+          border-color: rgba(255,255,255,0.18);
+          color: var(--text);
+          transform: translateY(-1px);
+        }
+
+        .ms-icon { display: flex; flex-wrap: wrap; gap: 1.5px; width: 14px; flex-shrink: 0; }
+        .ms-icon span { display: block; width: 6px; height: 6px; }
+
+
+        /* DASHBOARD */
+        .stats-grid {
+          display: grid; grid-template-columns: repeat(4, 1fr);
+          gap: 10px; margin-bottom: 2.5rem;
+        }
+        .stat-card {
+          padding: 1rem 1.25rem;
+          background: rgba(255,255,255,0.02);
+          border: 0.5px solid rgba(255,255,255,0.06);
+          border-radius: 10px;
+        }
+        .stat-label {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; color: var(--dim);
+          letter-spacing: 0.06em; margin-bottom: 6px;
+        }
+        .stat-value {
+          font-size: 20px; font-weight: 500;
+          color: var(--text); letter-spacing: -0.02em;
+        }
+        .stat-unit { font-size: 11px; color: var(--dim); font-weight: 300; margin-left: 3px; }
+        .section-label {
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; color: var(--dim);
+          letter-spacing: 0.1em; margin-bottom: 1rem;
+        }
+        .services-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 10px; margin-bottom: 2.5rem;
+        }
+        .service-card {
+          padding: 1.25rem;
+          background: rgba(255,255,255,0.02);
+          border: 0.5px solid var(--border);
+          border-radius: 12px; text-decoration: none;
+          display: block; transition: all 0.2s;
+        }
+        .service-card:hover {
+          background: rgba(255,255,255,0.05);
+          border-color: rgba(255,255,255,0.14);
+          transform: translateY(-2px);
+        }
+        .service-icon {
+          width: 32px; height: 32px; border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 1rem; font-size: 15px;
+        }
+        .service-name {
+          font-size: 13px; font-weight: 500;
+          color: rgba(255,255,255,0.8); margin-bottom: 3px;
+        }
+        .service-desc { font-size: 11px; color: var(--dim); font-weight: 300; }
+        .service-status {
+          display: inline-flex; align-items: center; gap: 4px;
+          margin-top: 0.75rem;
+          font-family: 'DM Mono', monospace;
+          font-size: 10px; letter-spacing: 0.04em;
+        }
+        .dot-up { color: rgba(63,185,80,0.7); }
+        .dot-up::before { content: '●'; margin-right: 3px; font-size: 7px; }
+        .dot-soon { color: var(--dim); }
+        .dot-soon::before { content: '○'; margin-right: 3px; font-size: 7px; }
+        .divider { height: 0.5px; background: rgba(255,255,255,0.05); margin: 0 0 2.5rem; }
+
+        /* FOOTER */
+        footer {
+          position: relative; z-index: 1;
+          border-top: 0.5px solid var(--border);
+          padding: 1rem 2rem;
+          max-width: 960px; margin: 0 auto;
+          width: 100%;
+          display: flex; justify-content: space-between;
+        }
+
+        footer span {
+          font-family: 'DM Mono', monospace;
+          font-size: 9px; color: var(--dim);
+          letter-spacing: 0.04em;
+        }
+
+        /* MOBILE */
+        @media (max-width: 640px) {
+          .nav-inner {
+            padding: 0 1rem;
+          }
+
+          .nav-center {
+            gap: 1.2rem;
+          }
+
+          .nav-center a {
+            font-size: 11px;
+          }
+
+          .user-pill-name {
+            display: none;
+          }
+
+          main {
+            padding: 2rem 1rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .services-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .uc-title {
+            font-size: 28px;
+          }
+
+          .security-row {
+            flex-wrap: wrap;
+          }
+
+          footer {
+            padding: 1rem;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .nav-center {
+            gap: 0.8rem;
+          }
+
+          .services-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="grid-bg"></div>
+
+      <nav>
+        <div class="nav-inner">
+          <a href="#" class="nav-logo">seaze<span>.dev</span></a>
+
+          <div class="nav-center">
+            <a href="#" class="active" onclick="show('home',this);return false;">home</a>
+            <a href="#" onclick="show('blog',this);return false;">blog</a>
+            <a href="#" id="nav-login" onclick="show('login',this);return false;">login</a>
+            <a href="#" id="nav-dashboard" style="display:none;" onclick="show('dashboard',this);return false;">dashboard</a>
+          </div>
+
+          <div class="nav-user">
+            <div class="user-pill" onclick="toggleDropdown()" id="userBtn">
+              <div class="user-pill-dot"></div>
+              <span class="user-pill-name" id="pill-name"></span>
+              <svg class="user-pill-chevron" id="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+            <div class="user-dropdown" id="dropdown">
+              <div class="dropdown-header">
+                <div class="dropdown-name" id="dropdown-name"></div>
+                <div class="dropdown-email" id="dropdown-email"></div>
+              </div>
+              <a href="/dashboard" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+              </a>
+              <a href="https://auth.seaze.dev/if/admin/" class="dropdown-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Admin
+              </a>
+              <div class="dropdown-divider"></div>
+              <a href="https://login.microsoftonline.com/6fcd1589-5745-4cb0-8129-72df46969c08/oauth2/v2.0/logout?post_logout_redirect_uri=https://seaze.dev/outpost.goauthentik.io/sign_out" class="dropdown-item danger">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
+                Sign out
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <main>
+        <div class="page active" id="page-home">
+          <div class="uc-eyebrow"><div class="dot"></div>UNDER CONSTRUCTION</div>
+          <h1 class="uc-title">Hi, I'm Matt.<br><em>Something is being built here.</em></h1>
+          <p class="uc-desc">A personal corner of the internet. Projects, writing, and experiments in cloud infrastructure — coming soon.</p>
+          <div class="uc-rule"></div>
+          <div class="uc-meta">homelab · AKS · centralus</div>
+        </div>
+
+        <div class="page" id="page-blog">
+          <div class="blog-eyebrow">WRITING</div>
+          <p class="blog-empty">Nothing here yet.</p>
+        </div>
+
+        <div class="page" id="page-login">
+          <div class="login-wrap">
+            <div class="login-label"><div class="dot-green"></div>ALL SYSTEMS OPERATIONAL</div>
+            <div class="login-heading">Matt's Homelab</div>
+            <div class="login-sub">Secure access portal</div>
+            <div class="login-rule"></div>
+            <div class="security-row">
+              <div class="sec-badge">CROWDSEC</div>
+              <div class="sec-badge">ANUBIS</div>
+              <div class="sec-badge">ENTRA ID</div>
+            </div>
+            <a href="https://seaze.dev/outpost.goauthentik.io/start?rd=https://seaze.dev/dashboard" class="sign-in-btn">
+              Sign in with Microsoft
+            </a>
+          </div>
+        </div>
+
+        <div class="page" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">PODS</div>
+              <div class="stat-value" id="stat-pods">—<span class="stat-unit">running</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">NODES</div>
+              <div class="stat-value" id="stat-nodes">—<span class="stat-unit">healthy</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">NAMESPACES</div>
+              <div class="stat-value" id="stat-ns">—<span class="stat-unit">active</span></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">UPTIME</div>
+              <div class="stat-value">99<span class="stat-unit">%</span></div>
+            </div>
+          </div>
+          <div class="section-label">SERVICES</div>
+          <div class="services-grid">
+            <a href="/grafana" class="service-card">
+              <div class="service-icon" style="background:rgba(242,95,92,0.08);">📊</div>
+              <div class="service-name">Grafana</div>
+              <div class="service-desc">Metrics &amp; observability</div>
+              <div class="service-status dot-soon">coming soon</div>
+            </a>
+            <a href="/dagster" class="service-card">
+              <div class="service-icon" style="background:rgba(56,139,253,0.08);">⚡</div>
+              <div class="service-name">Dagster</div>
+              <div class="service-desc">Pipeline orchestration</div>
+              <div class="service-status dot-soon">coming soon</div>
+            </a>
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(63,185,80,0.08);">🤖</div>
+              <div class="service-name">Bible Bot</div>
+              <div class="service-desc">Discord bot</div>
+              <div class="service-status dot-soon">coming soon</div>
+            </a>
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(210,153,34,0.08);">🃏</div>
+              <div class="service-name">MTG API</div>
+              <div class="service-desc">Card data service</div>
+              <div class="service-status dot-soon">coming soon</div>
+            </a>
+          </div>
+          <div class="divider"></div>
+          <div class="section-label">SECURITY</div>
+          <div class="services-grid">
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(56,139,253,0.08);">🛡️</div>
+              <div class="service-name">CrowdSec</div>
+              <div class="service-desc">Threat intelligence</div>
+              <div class="service-status dot-up">active</div>
+            </a>
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(56,139,253,0.08);">🐺</div>
+              <div class="service-name">Anubis</div>
+              <div class="service-desc">Bot protection</div>
+              <div class="service-status dot-up">active</div>
+            </a>
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(56,139,253,0.08);">🔐</div>
+              <div class="service-name">Entra ID</div>
+              <div class="service-desc">Identity provider</div>
+              <div class="service-status dot-up">active</div>
+            </a>
+            <a href="#" class="service-card">
+              <div class="service-icon" style="background:rgba(56,139,253,0.08);">🔑</div>
+              <div class="service-name">Key Vault</div>
+              <div class="service-desc">Secrets management</div>
+              <div class="service-status dot-up">active</div>
+            </a>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <span>seaze.dev</span>
+        <span>2026</span>
+      </footer>
+
+      <script>
+        function show(page, el) {
+          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+          document.querySelectorAll('.nav-center a').forEach(a => a.classList.remove('active'));
+          document.getElementById('page-' + page).classList.add('active');
+          if (el) el.classList.add('active');
+        }
+
+        function toggleDropdown() {
+          const d = document.getElementById('dropdown');
+          const c = document.getElementById('chevron');
+          d.classList.toggle('open');
+          c.classList.toggle('open');
+        }
+
+        document.addEventListener('click', function(e) {
+          if (!document.getElementById('userBtn').contains(e.target)) {
+            document.getElementById('dropdown').classList.remove('open');
+            document.getElementById('chevron').classList.remove('open');
+          }
+        });
+
+        // Read auth state from meta tags (populated server-side by Caddy from Envoy headers)
+        const getMeta = (name) => document.querySelector('meta[name="' + name + '"]')?.getAttribute('content')?.trim() || '';
+        const username = getMeta('auth-username');
+        const name = getMeta('auth-name') || username;
+        const email = getMeta('auth-email');
+
+        if (username) {
+          document.getElementById('pill-name').textContent = username;
+          document.getElementById('dropdown-name').textContent = name;
+          document.getElementById('dropdown-email').textContent = email;
+          document.getElementById('nav-dashboard').style.display = '';
+          document.getElementById('nav-login').style.display = 'none';
+          if (window.location.pathname.startsWith('/dashboard')) {
+            show('dashboard', document.getElementById('nav-dashboard'));
+          }
+        } else {
+          document.getElementById('userBtn').style.display = 'none';
+        }
+
+      </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      containers:
+        - name: caddy
+          image: acrhomelabmatt.azurecr.io/caddy:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/caddy
+            - name: caddy-config
+              mountPath: /etc/caddy/Caddyfile
+              subPath: Caddyfile
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+      volumes:
+        - name: html
+          configMap:
+            name: homepage-html
+        - name: caddy-config
+          configMap:
+            name: caddy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  selector:
+    app: homepage
+  ports:
+    - port: 80
+      targetPort: 80

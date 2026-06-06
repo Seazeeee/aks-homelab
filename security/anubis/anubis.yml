@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anubis-env
+  namespace: anubis
+data:
+  BIND: ":8923"
+  DIFFICULTY: "10"
+  METRICS_BIND: ":9090"
+  SERVE_ROBOTS_TXT: "true"
+  OG_PASSTHROUGH: "true"
+  TARGET: "http://homepage.homepage.svc.cluster.local:80"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anubis
+  namespace: anubis
+  labels:
+    app.kubernetes.io/name: anubis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: anubis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: anubis
+    spec:
+      containers:
+        - name: anubis
+          image: acrhomelabmatt.azurecr.io/anubis:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8923
+              name: http
+            - containerPort: 9090
+              name: metrics
+          envFrom:
+            - configMapRef:
+                name: anubis-env
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anubis
+  namespace: anubis
+spec:
+  selector:
+    app.kubernetes.io/name: anubis
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8923

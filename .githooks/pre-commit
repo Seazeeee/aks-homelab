@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Pre-commit hook: scan staged changes for leaked secrets with betterleaks.
+#
+# Enable once per clone (the hook lives in-repo, but core.hooksPath is local config):
+#   git config core.hooksPath .githooks
+#
+# Install betterleaks: see README → "Secret scanning".
+set -euo pipefail
+
+# Locate betterleaks on PATH or in the common local install dir.
+BL="$(command -v betterleaks || true)"
+if [ -z "$BL" ] && [ -x "$HOME/.local/bin/betterleaks" ]; then
+  BL="$HOME/.local/bin/betterleaks"
+fi
+
+if [ -z "$BL" ]; then
+  echo "⚠  betterleaks not found — staged changes were NOT scanned for secrets." >&2
+  echo "   Install it (see README → Secret scanning), then re-enable scanning." >&2
+  exit 0   # warn but don't permanently block commits if the tool is missing
+fi
+
+exec "$BL" git --pre-commit --redact --staged --verbose

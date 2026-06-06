@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bible-bot
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bible-bot-data
+  namespace: bible-bot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: managed-csi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bible-bot
+  namespace: bible-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bible-bot
+  template:
+    metadata:
+      labels:
+        app: bible-bot
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: write-env
+          image: acrhomelabmatt.azurecr.io/busybox:latest
+          imagePullPolicy: Always
+          command:
+            - sh
+            - -c
+            - |
+              echo "API_KEY=$DISCORD_TOKEN" > /env-data/.env
+              echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> /env-data/.env
+              echo "JSON_PATH=./data/guilds.json" >> /env-data/.env
+          env:
+            - name: DISCORD_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: bible-bot-secrets
+                  key: token
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bible-bot-secrets
+                  key: openai-key
+          volumeMounts:
+            - name: app-env
+              mountPath: /env-data
+            - name: bot-data
+              mountPath: /app/data
+      containers:
+        - name: bible-bot
+          image: acrhomelabmatt.azurecr.io/bible-bot:latest
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+            - name: bot-data
+              mountPath: /app/data
+            - name: app-env
+              mountPath: /app/.env
+              subPath: .env
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: bible-bot-keyvault
+        - name: bot-data
+          persistentVolumeClaim:
+            claimName: bible-bot-data
+        - name: app-env
+          emptyDir: {}
