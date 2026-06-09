@@ -1,7 +1,9 @@
 # No dependsOn between these: the ReferenceGrants in ./gateway live inside
 # namespaces created by ./apps, so a strict order deadlocks (gateway waits on
 # the app namespaces; apps waited on gateway). Flux reconciles all paths
-# independently and retries until they converge. Safe with prune:false.
+# independently and retries until they converge. prune:true is enabled now
+# that the initial adoption reconciled cleanly — Flux will remove resources
+# that are deleted from Git.
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -12,7 +14,7 @@ spec:
   interval: 10m
   retryInterval: 1m
   path: ./gateway
-  prune: false
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
@@ -26,7 +28,7 @@ spec:
   interval: 10m
   retryInterval: 1m
   path: ./cluster
-  prune: false
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
@@ -40,7 +42,7 @@ spec:
   interval: 10m
   retryInterval: 1m
   path: ./security
-  prune: false
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
