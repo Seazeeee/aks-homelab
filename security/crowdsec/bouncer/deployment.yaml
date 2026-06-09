@@ -23,9 +23,9 @@ spec:
           type: RuntimeDefault
       containers:
         - name: bouncer
-          # Vendored into the user's ACR (built from upstream tag v0.6.1 = chart 0.6.1
-          # appVersion). PIN BY DIGEST after `az acr build` — see RUNBOOK.md.
-          image: acrhomelabmatt.azurecr.io/envoy-proxy-bouncer:v0.6.1
+          # Vendored into the user's ACR, built from upstream tag v0.6.1 (chart 0.6.1
+          # appVersion). Digest-pinned (immutable) — re-run the ACR build to bump.
+          image: acrhomelabmatt.azurecr.io/envoy-proxy-bouncer@sha256:402d9375ac2fcb4ac8369141e850d8ce859c889e5d3b925a4da4b0756625f4c6
           imagePullPolicy: IfNotPresent
           args: ["serve", "--config", "/app/config/config.yaml"]
           ports:
@@ -52,6 +52,12 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            # Mounting the SPC is what makes the CSI driver materialize the
+            # crowdsec-envoy-bouncer-secrets Secret (consumed via secretKeyRef
+            # above). Without a pod mounting it, that synced Secret is GC'd.
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -86,3 +92,9 @@ spec:
             name: crowdsec-envoy-bouncer-config
         - name: tmp
           emptyDir: {}
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: crowdsec-keyvault
