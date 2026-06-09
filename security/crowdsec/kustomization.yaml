@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Only the SecurityPolicy is a raw manifest here.
+# cs_values.yml and bouncer-values.yml are Helm values (P5), not applied by Flux kustomize.
+resources:
+  - securitypolicy.yml
