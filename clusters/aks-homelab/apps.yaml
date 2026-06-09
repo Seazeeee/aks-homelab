@@ -10,7 +10,7 @@ spec:
   interval: 10m
   retryInterval: 1m
   path: ./apps
-  prune: false
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
