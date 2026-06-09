@@ -3,5 +3,4 @@ kind: Kustomization
 # postgres/ is a Helm release (pg_values.yml), adopted later as a HelmRelease (P5).
 resources:
   - homepage
-  - login
   - bible-bot
