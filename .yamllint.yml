@@ -1,0 +1,24 @@
+# yamllint config for the homelab manifests.
+# Relaxed where Kubernetes/embedded-content realities make the defaults noise.
+extends: default
+
+# Flux-generated manifests are not ours to lint.
+ignore: |
+  clusters/aks-homelab/flux-system/
+
+rules:
+  # ConfigMaps embed full HTML/CSP/Caddyfile content — long lines are expected.
+  line-length: disable
+  # Files mix single-doc (kustomization.yaml) and multi-doc (--- separated).
+  document-start: disable
+  # k8s uses true/false; don't flag key names that look truthy.
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: disable
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+  braces: disable
+  brackets: disable

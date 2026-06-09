@@ -1,0 +1,78 @@
+name: PR Validation
+
+# Validates manifests on every PR to main, and re-validates main after merge.
+# These checks are the security gate for GitOps: once merged, Flux applies main
+# straight to the cluster, so nothing reaches prod without passing here.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Least privilege: these jobs only read the repo.
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: yamllint
+        run: pipx run yamllint==1.35.1 -c .yamllint.yml .
+
+  kustomize-validate:
+    runs-on: ubuntu-latest
+    env:
+      KUSTOMIZE_VERSION: "5.8.1"
+      KUBECONFORM_VERSION: "0.7.0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kustomize + kubeconform (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin kustomize
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin kubeconform
+      - name: kustomize build + kubeconform schema validation
+        run: |
+          set -euo pipefail
+          # default = upstream k8s schemas; datreeio catalog = CRD schemas
+          # (Gateway API, cert-manager, Flux, ...). Unknown CRDs are skipped.
+          conform() {
+            kubeconform -strict -summary -ignore-missing-schemas \
+              -schema-location default \
+              -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+              "$@"
+          }
+          for path in gateway cluster security apps; do
+            echo "::group::kustomize build $path"
+            kustomize build "$path" | conform -
+            echo "::endgroup::"
+          done
+          echo "::group::flux Kustomizations"
+          conform clusters/aks-homelab/infrastructure.yaml clusters/aks-homelab/apps.yaml
+          echo "::endgroup::"
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    env:
+      BETTERLEAKS_VERSION: "1.4.1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so a secret committed then removed in the same PR is
+          # still caught. The local pre-commit hook can be bypassed; this can't.
+          fetch-depth: 0
+      - name: Install betterleaks (pinned)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/betterleaks/betterleaks/releases/download/v${BETTERLEAKS_VERSION}/betterleaks_${BETTERLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin betterleaks
+      - name: Scan git history for secrets
+        run: betterleaks git --redact --verbose --exit-code 1 .
