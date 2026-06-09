@@ -1,0 +1,12 @@
+# Non-secret bouncer config. The api-key is NOT here — it is injected via env
+# (secretKeyRef) in deployment.yaml, which overrides per the bouncer's
+# precedence (defaults < file < env). Verified against upstream CONFIGURATION.md.
+server:
+  grpcPort: 8080
+  logLevel: info
+bouncer:
+  enabled: true
+  lapiURL: http://crowdsec-service.crowdsec.svc.cluster.local:8080
+waf:
+  enabled: true
+  appSecURL: http://crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
