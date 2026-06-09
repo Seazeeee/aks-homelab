@@ -1,0 +1,30 @@
+# Adopts the existing `crowdsec` Helm release in the crowdsec namespace.
+# helm-controller takes over by running an upgrade against the matching
+# releaseName+namespace — values are byte-identical to the original install
+# (sourced from cs_values.yml via the configMapGenerator below), so the upgrade
+# is a no-op and pods are not disrupted.
+#
+# Version is PINNED — chart upgrades are deliberate (bump here, review, merge),
+# never automatic. The HelmRepository is still polled so a stale index doesn't
+# block reconciliation.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec
+  namespace: crowdsec
+spec:
+  releaseName: crowdsec
+  interval: 30m
+  chart:
+    spec:
+      chart: crowdsec
+      version: "0.24.0"
+      sourceRef:
+        kind: HelmRepository
+        name: crowdsec
+        namespace: crowdsec
+      interval: 12h
+  valuesFrom:
+    - kind: ConfigMap
+      name: crowdsec-values
+      valuesKey: values.yaml

@@ -1,6 +1,18 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Only the SecurityPolicy is a raw manifest here.
-# cs_values.yml and bouncer-values.yml are Helm values (P5), not applied by Flux kustomize.
 resources:
+  - namespace.yaml
+  - helmrepository.yaml
+  - helmrelease.yaml
   - securitypolicy.yml
+# cs_values.yml stays the single source of truth for the chart values; it is
+# surfaced to the HelmRelease as a ConfigMap (stable name, no hash suffix, so
+# the valuesFrom reference resolves). bouncer-values.yml is the kdwils bouncer
+# (handled separately — see the vendor-into-ACR plan), not applied here.
+configMapGenerator:
+  - name: crowdsec-values
+    namespace: crowdsec
+    files:
+      - values.yaml=cs_values.yml
+    options:
+      disableNameSuffixHash: true
