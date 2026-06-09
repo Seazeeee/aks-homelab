@@ -647,6 +647,7 @@ data:
           </div>
         </div>
 
+        {{ if ne (.Req.Header.Get "X-Authentik-Username") "" }}
         <div class="page" id="page-dashboard">
           <div class="stats-grid">
             <div class="stat-card">
@@ -722,6 +723,7 @@ data:
             </a>
           </div>
         </div>
+        {{ end }}
       </main>
 
       <footer>
