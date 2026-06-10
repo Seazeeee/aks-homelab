@@ -74,16 +74,6 @@ nav {
 .nav-center a:hover { color: var(--text); }
 .nav-center a.active { color: var(--text); }
 
-.nav-rss {
-  font-family: 'DM Mono', monospace;
-  font-size: 10px; color: var(--dim);
-  text-decoration: none;
-  letter-spacing: 0.08em;
-  transition: color 0.15s;
-}
-
-.nav-rss:hover { color: var(--text); }
-
 /* MAIN */
 main {
   position: relative; z-index: 1;
