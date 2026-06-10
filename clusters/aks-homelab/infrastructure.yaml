@@ -1,9 +1,14 @@
-# No dependsOn between these: the ReferenceGrants in ./gateway live inside
-# namespaces created by ./apps, so a strict order deadlocks (gateway waits on
-# the app namespaces; apps waited on gateway). Flux reconciles all paths
-# independently and retries until they converge. prune:true is enabled now
-# that the initial adoption reconciled cleanly — Flux will remove resources
-# that are deleted from Git.
+# No dependsOn between gateway and apps: the ReferenceGrants in ./gateway live
+# inside namespaces created by ./apps, so a strict order deadlocks (gateway
+# waits on the app namespaces; apps waited on gateway). Flux reconciles those
+# paths independently and retries until they converge. prune:true is enabled
+# now that the initial adoption reconciled cleanly — Flux will remove
+# resources that are deleted from Git.
+#
+# infra-cluster DOES depend on infra-security: HTTPRoutes must never go live
+# before the SecurityPolicies that gate them (a route reconciling ahead of its
+# ext-auth policy briefly serves the backend unauthenticated). Nothing in
+# ./security needs ./cluster objects at apply time, so this cannot deadlock.
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
@@ -25,6 +30,8 @@ metadata:
   name: infra-cluster
   namespace: flux-system
 spec:
+  dependsOn:
+    - name: infra-security
   interval: 10m
   retryInterval: 1m
   path: ./cluster
