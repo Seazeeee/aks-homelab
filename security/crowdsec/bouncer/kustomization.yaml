@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: envoy-gateway-system
-# INERT: this kustomization is intentionally NOT referenced by security/kustomization.yaml.
-# Merging this branch does NOT deploy the vendored bouncer over the live kdwils one.
-# Cutover is a deliberate maintenance-window step — see RUNBOOK.md.
+# Wired into security/kustomization.yaml — Flux deploys this. The live cutover
+# (replacing the kdwils Helm release) is a deliberate maintenance-window step;
+# suspend infra-security before merge, then helm-uninstall the old release.
 resources:
   - deployment.yaml
   - service.yaml

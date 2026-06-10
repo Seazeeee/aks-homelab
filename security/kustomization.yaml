@@ -4,3 +4,4 @@ resources:
   - anubis
   - crowdsec
   - authentik
+  - crowdsec/bouncer
