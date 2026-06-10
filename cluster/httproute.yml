@@ -113,9 +113,9 @@ spec:
   parentRefs:
     - name: homelab-gateway
       namespace: envoy-gateway-system
-      sectionName: https-root
+      sectionName: https-dashboard
   hostnames:
-    - seaze.dev
+    - dashboard.seaze.dev
   rules:
     - matches:
         - path:
@@ -169,7 +169,47 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: homelab-route-protected
+  name: homelab-route-dashboard
+  namespace: default
+spec:
+  parentRefs:
+    - name: homelab-gateway
+      namespace: envoy-gateway-system
+      sectionName: https-dashboard
+  hostnames:
+    - dashboard.seaze.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      # Strip the identity headers the Authentik ext-auth does NOT overwrite
+      # (only Username/Name/Email/Uid are in headersToBackend, so those are
+      # always replaced by the outpost and must not be removed here — route
+      # header removal runs after ext-auth injection).
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - X-Authentik-Groups
+              - X-Authentik-Jwt
+              - X-Authentik-Meta-Jwks
+              - X-Authentik-Meta-Outpost
+              - X-Authentik-Meta-Provider
+              - X-Authentik-Meta-App
+              - X-Authentik-Meta-Version
+      backendRefs:
+        - name: homepage
+          namespace: homepage
+          port: 80
+---
+# Legacy path: seaze.dev/dashboard moved to dashboard.seaze.dev. This more
+# specific match wins over the catch-all public route, so old bookmarks get
+# a permanent redirect instead of hitting Anubis.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: homelab-route-dashboard-redirect
   namespace: default
 spec:
   parentRefs:
@@ -183,7 +223,11 @@ spec:
         - path:
             type: PathPrefix
             value: /dashboard
-      backendRefs:
-        - name: homepage
-          namespace: homepage
-          port: 80
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            hostname: dashboard.seaze.dev
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /
+            statusCode: 301

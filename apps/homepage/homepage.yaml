@@ -26,11 +26,6 @@ data:
         # Canonicalize the explicit index file to the root URL
         redir /index.html / 301
 
-        handle /dashboard* {
-          rewrite * /index.html
-          file_server
-        }
-
         handle {
           file_server
         }
@@ -583,7 +578,7 @@ data:
                 <div class="dropdown-name" id="dropdown-name"></div>
                 <div class="dropdown-email" id="dropdown-email"></div>
               </div>
-              <a href="/dashboard" class="dropdown-item">
+              <a href="https://dashboard.seaze.dev/" class="dropdown-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 Dashboard
               </a>
@@ -592,7 +587,7 @@ data:
                 Admin
               </a>
               <div class="dropdown-divider"></div>
-              <a href="https://login.microsoftonline.com/6fcd1589-5745-4cb0-8129-72df46969c08/oauth2/v2.0/logout?post_logout_redirect_uri=https://seaze.dev/outpost.goauthentik.io/sign_out" class="dropdown-item danger">
+              <a href="https://login.microsoftonline.com/6fcd1589-5745-4cb0-8129-72df46969c08/oauth2/v2.0/logout?post_logout_redirect_uri=https://dashboard.seaze.dev/outpost.goauthentik.io/sign_out" class="dropdown-item danger">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/></svg>
                 Sign out
               </a>
@@ -621,7 +616,7 @@ data:
               <div class="sec-badge">ANUBIS</div>
               <div class="sec-badge">ENTRA ID</div>
             </div>
-            <a href="https://seaze.dev/outpost.goauthentik.io/start?rd=https://seaze.dev/dashboard" class="sign-in-btn">
+            <a href="https://dashboard.seaze.dev/outpost.goauthentik.io/start?rd=https://dashboard.seaze.dev/" class="sign-in-btn">
               Sign in with Microsoft
             </a>
           </div>
@@ -745,7 +740,7 @@ data:
           document.getElementById('dropdown-email').textContent = email;
           document.getElementById('nav-dashboard').style.display = '';
           document.getElementById('nav-login').style.display = 'none';
-          if (window.location.pathname.startsWith('/dashboard')) {
+          if (window.location.hostname.startsWith('dashboard.')) {
             show('dashboard', document.getElementById('nav-dashboard'));
           }
         } else {

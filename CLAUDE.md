@@ -28,14 +28,15 @@ Internet
   └─> Envoy Gateway (envoy-gateway-system, ports 80/443, TLS terminate)
         └─> CrowdSec SecurityPolicy on the Gateway  ← screens ALL ingress first
               (ext-auth gRPC: IP bouncer + AppSec WAF)
-                ├─> Public route    (seaze.dev/)          → Anubis (bot PoW) → Homepage
-                ├─> Protected route (seaze.dev/dashboard) → Authentik OIDC   → Homepage
-                └─> Auth route      (auth.seaze.dev)      → Authentik server
+                ├─> Public route    (seaze.dev/)           → Anubis (bot PoW) → Homepage
+                ├─> Blog route      (blog.seaze.dev)       → Anubis (bot PoW) → Blog
+                ├─> Protected route (dashboard.seaze.dev)  → Authentik OIDC   → Homepage
+                └─> Auth route      (auth.seaze.dev)       → Authentik server
 ```
 
-The gateway terminates TLS with cert-manager-issued Let's Encrypt certs. CrowdSec's `SecurityPolicy` is attached to the **Gateway**, so its ext-auth (IP bouncer + AppSec WAF) runs against all ingress *before* Envoy routes to any backend — i.e. it sits in front of Anubis, not after it. A second `SecurityPolicy` on the protected HTTPRoute enforces Entra ID OIDC (via the Authentik embedded outpost) for `/dashboard`.
+The gateway terminates TLS with cert-manager-issued Let's Encrypt certs. CrowdSec's `SecurityPolicy` is attached to the **Gateway**, so its ext-auth (IP bouncer + AppSec WAF) runs against all ingress *before* Envoy routes to any backend — i.e. it sits in front of Anubis, not after it. A second `SecurityPolicy` on the protected HTTPRoute enforces Entra ID OIDC (via the Authentik embedded outpost) for `dashboard.seaze.dev`. The old `seaze.dev/dashboard` path 301-redirects to the subdomain.
 
-> Note: when a Gateway-scoped and a Route-scoped `SecurityPolicy` overlap on the same route, Envoy Gateway's policy-attachment precedence may apply the more specific (route) policy rather than chaining both. Confirm on-cluster that CrowdSec still applies to `/dashboard` and isn't shadowed by the Authentik policy.
+> Note: when a Gateway-scoped and a Route-scoped `SecurityPolicy` overlap on the same route, Envoy Gateway's policy-attachment precedence may apply the more specific (route) policy rather than chaining both. Confirm on-cluster that CrowdSec still applies to `dashboard.seaze.dev` and isn't shadowed by the Authentik policy.
 
 ### Secrets
 
