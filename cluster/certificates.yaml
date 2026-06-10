@@ -23,3 +23,16 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - seaze.dev
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: blog-tls
+  namespace: envoy-gateway-system
+spec:
+  secretName: blog-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - blog.seaze.dev
