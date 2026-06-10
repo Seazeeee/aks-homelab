@@ -1,0 +1,14 @@
+{{ define "main" }}
+<article>
+  <div class="eyebrow">{{ .Date.Format "Jan 2, 2006" | upper }} · {{ .ReadingTime }} MIN READ</div>
+  <h1 class="page-title">{{ .Title }}</h1>
+  {{ with .Description }}<p class="page-desc">{{ . }}</p>{{ end }}
+  <div class="rule"></div>
+  <div class="prose">
+    {{ .Content }}
+  </div>
+  <div class="post-footer">
+    <a href="/">&larr; all posts</a>
+  </div>
+</article>
+{{ end }}

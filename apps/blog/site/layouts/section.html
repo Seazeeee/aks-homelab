@@ -1,0 +1,19 @@
+{{ define "main" }}
+<div class="eyebrow"><span class="dot"></span>{{ .Title | upper }}</div>
+<div class="rule"></div>
+{{ if .Pages }}
+<ul class="post-list">
+  {{ range .Pages }}
+  <li>
+    <a class="post-row" href="{{ .RelPermalink }}">
+      <span class="post-title">{{ .Title }}</span>
+      <span class="post-date">{{ .Date.Format "2006-01-02" }}</span>
+    </a>
+    {{ with .Description }}<p class="post-summary">{{ . }}</p>{{ end }}
+  </li>
+  {{ end }}
+</ul>
+{{ else }}
+<p class="empty">Nothing here yet.</p>
+{{ end }}
+{{ end }}

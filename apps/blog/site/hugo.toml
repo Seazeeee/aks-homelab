@@ -1,0 +1,23 @@
+baseURL = "https://blog.seaze.dev/"
+locale = "en-US"
+title = "seaze.dev"
+enableRobotsTXT = true
+# Don't advertise the generator + exact Hugo version in every page head.
+disableHugoGeneratorInject = true
+disableKinds = ["taxonomy", "term"]
+
+[params]
+description = "Projects, writing, and experiments in cloud infrastructure."
+
+[pagination]
+pagerSize = 10
+
+[markup.highlight]
+# Class-based highlighting (styles live in assets/css/chroma.css) so pages
+# carry no inline style attributes — keeps the CSP free of 'unsafe-inline'.
+noClasses = false
+
+[markup.goldmark.renderer]
+# Raw HTML in Markdown stays disabled (Goldmark default) — content files
+# can't inject script/markup into pages.
+unsafe = false
