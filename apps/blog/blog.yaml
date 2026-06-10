@@ -31,7 +31,7 @@ spec:
           # Built by .github/workflows/blog-build.yml on pushes to main that
           # touch apps/blog/**. Digest-pinned (immutable) — CI prints the new
           # digest in its run summary; bump it here to deploy new content.
-          image: acrhomelabmatt.azurecr.io/blog@sha256:3a32115e124f766e27e4ab742454c45d34b8d3418126811544f83b8f6967bd5b
+          image: acrhomelabmatt.azurecr.io/blog@sha256:8fcfd57ca87aa192c1911735035e01f2b6d12c0ceeb4c81666921952cf59a1c9
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -53,13 +53,10 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
+              # This image's Dockerfile strips the caddy binary's file caps
+              # (setcap -r), so it execs cleanly under no-new-privs with no
+              # grantable caps — see [caddy-file-caps] in private runbooks.
               drop: ["ALL"]
-              # The upstream caddy image sets file capabilities
-              # (cap_net_bind_service) on the binary; under no-new-privs the
-              # kernel refuses to exec a file-capped binary unless the cap is
-              # grantable. Unused on :8080. The Dockerfile now strips the file
-              # cap — drop this `add` at the next image digest bump.
-              add: ["NET_BIND_SERVICE"]
           livenessProbe:
             httpGet:
               path: /
