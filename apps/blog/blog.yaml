@@ -31,7 +31,7 @@ spec:
           # Built by .github/workflows/blog-build.yml on pushes to main that
           # touch apps/blog/**. Digest-pinned (immutable) — CI prints the new
           # digest in its run summary; bump it here to deploy new content.
-          image: acrhomelabmatt.azurecr.io/blog@sha256:8fcfd57ca87aa192c1911735035e01f2b6d12c0ceeb4c81666921952cf59a1c9
+          image: acrhomelabmatt.azurecr.io/blog@sha256:453453ca306f63c48b529f9a53ba1e0b14d4e3e03a0c1ed789d79868e8ec412e
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
