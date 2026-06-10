@@ -23,6 +23,12 @@ metadata:
   namespace: bible-bot
 spec:
   replicas: 1
+  # Single replica + ReadWriteOnce PVC (bible-bot-data): use Recreate so the old
+  # pod releases the disk before the new one starts. The default RollingUpdate
+  # deadlocks — the new pod's init container can't mount the RWO volume the old
+  # pod still holds, so it hangs in Init forever.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: bible-bot
