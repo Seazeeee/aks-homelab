@@ -1,0 +1,324 @@
+/* Thin hand-rolled theme matching the seaze.dev homepage aesthetic
+   (dark #080c10, hairline borders, DM Sans + DM Mono). */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #080c10;
+  --surface: rgba(255,255,255,0.02);
+  --border: rgba(255,255,255,0.07);
+  --text: rgba(255,255,255,0.85);
+  --muted: rgba(255,255,255,0.4);
+  --dim: rgba(255,255,255,0.2);
+  --green: #3fb950;
+  --blue: rgba(56,139,253,0.7);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-bg {
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* NAV */
+nav {
+  position: relative; z-index: 10;
+  border-bottom: 0.5px solid var(--border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.nav-inner {
+  max-width: 720px; margin: 0 auto;
+  padding: 0 2rem;
+  height: 52px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  color: var(--text); text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.nav-logo span { color: var(--dim); }
+
+.nav-center { display: flex; gap: 2rem; }
+
+.nav-center a {
+  font-size: 12px; font-weight: 400;
+  color: var(--dim);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.15s;
+}
+
+.nav-center a:hover { color: var(--text); }
+.nav-center a.active { color: var(--text); }
+
+.nav-rss {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--dim);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  transition: color 0.15s;
+}
+
+.nav-rss:hover { color: var(--text); }
+
+/* MAIN */
+main {
+  position: relative; z-index: 1;
+  flex: 1;
+  max-width: 720px; margin: 0 auto;
+  width: 100%;
+  padding: 4rem 2rem;
+}
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrow .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.page-title {
+  font-size: clamp(26px, 5vw, 36px);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.page-desc {
+  font-size: 14px;
+  color: var(--dim);
+  font-weight: 300;
+  max-width: 460px;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.rule {
+  width: 32px; height: 0.5px;
+  background: var(--border);
+  margin-bottom: 2rem;
+}
+
+/* POST LIST */
+.post-list { list-style: none; }
+
+.post-list li {
+  padding: 1rem 0;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.post-row {
+  display: flex; align-items: baseline;
+  justify-content: space-between; gap: 1rem;
+  text-decoration: none;
+}
+
+.post-title {
+  font-size: 15px; font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  transition: color 0.15s;
+}
+
+.post-row:hover .post-title { color: var(--blue); }
+
+.post-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--dim);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.post-summary {
+  font-size: 13px; color: var(--muted);
+  font-weight: 300; line-height: 1.6;
+  margin-top: 0.4rem;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--dim);
+  font-weight: 300;
+  font-style: italic;
+}
+
+/* ARTICLE PROSE */
+.prose {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.prose p { margin-bottom: 1.25rem; }
+
+.prose h2, .prose h3, .prose h4 {
+  color: var(--text);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin: 2rem 0 0.75rem;
+}
+
+.prose h2 { font-size: 20px; }
+.prose h3 { font-size: 16px; }
+.prose h4 { font-size: 14px; }
+
+.prose a {
+  color: var(--blue);
+  text-decoration: none;
+  border-bottom: 0.5px solid rgba(56,139,253,0.3);
+  transition: border-color 0.15s;
+}
+
+.prose a:hover { border-color: var(--blue); }
+
+.prose ul, .prose ol {
+  margin: 0 0 1.25rem 1.25rem;
+}
+
+.prose li { margin-bottom: 0.4rem; }
+
+.prose blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 1rem;
+  margin-bottom: 1.25rem;
+  font-style: italic;
+  color: var(--dim);
+}
+
+.prose code {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.9em;
+  background: rgba(255,255,255,0.05);
+  border: 0.5px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.prose pre {
+  background: rgba(255,255,255,0.03);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1.25rem;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.prose img {
+  max-width: 100%;
+  border-radius: 10px;
+  border: 0.5px solid var(--border);
+}
+
+.prose hr {
+  border: none;
+  height: 0.5px;
+  background: var(--border);
+  margin: 2rem 0;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  font-size: 13px;
+}
+
+.prose th, .prose td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.prose th {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  font-weight: 400;
+}
+
+.post-footer {
+  margin-top: 3rem;
+}
+
+.post-footer a {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--dim);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color 0.15s;
+}
+
+.post-footer a:hover { color: var(--text); }
+
+/* FOOTER */
+footer {
+  position: relative; z-index: 1;
+  border-top: 0.5px solid var(--border);
+  padding: 1rem 2rem;
+  max-width: 720px; margin: 0 auto;
+  width: 100%;
+  display: flex; justify-content: space-between;
+}
+
+footer span {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; color: var(--dim);
+  letter-spacing: 0.04em;
+}
+
+/* MOBILE */
+@media (max-width: 640px) {
+  .nav-inner { padding: 0 1rem; }
+  .nav-center { gap: 1.2rem; }
+  main { padding: 2rem 1rem; }
+  footer { padding: 1rem; }
+  .post-row { flex-direction: column; gap: 0.2rem; }
+}

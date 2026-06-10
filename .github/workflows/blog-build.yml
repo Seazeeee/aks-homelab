@@ -1,0 +1,79 @@
+name: Blog Build
+
+# Builds the Hugo blog into a Caddy image. PRs only validate that the site
+# and image build; the ACR push runs exclusively on main. The Azure federated
+# credential's subject is pinned to refs/heads/main, so PR runs (including
+# fork PRs) can never mint an ACR token.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/blog/**"
+      - ".github/workflows/blog-build.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/blog/**"
+      - ".github/workflows/blog-build.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blog-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUGO_VERSION: "0.163.0"
+  HUGO_SHA256: "c5f3ef2e706d53216a5ffe07cf0ca5e402b3d2ab78adf3f06e6ce81b4f14d397"
+  IMAGE: acrhomelabmatt.azurecr.io/blog
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # OIDC token for azure/login — only exercised on push to main.
+      id-token: write
+    steps:
+      # SHA-pinned: this workflow mints cloud credentials, so action refs are
+      # immutable (tag-hijack of a mutable ref would run inside this job).
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install hugo (pinned + checksum-verified)
+        run: |
+          set -euo pipefail
+          curl -fsSLO "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz"
+          echo "${HUGO_SHA256}  hugo_${HUGO_VERSION}_linux-amd64.tar.gz" | sha256sum -c -
+          sudo tar -xzf "hugo_${HUGO_VERSION}_linux-amd64.tar.gz" -C /usr/local/bin hugo
+
+      - name: Build site
+        run: hugo --source apps/blog/site --minify --gc --printPathWarnings
+
+      - name: Build image
+        run: docker build -t "${IMAGE}:${GITHUB_SHA}" apps/blog
+
+      - name: Azure login (OIDC)
+        if: github.event_name == 'push'
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_BLOG_PUSH_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push to ACR
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          az acr login --name acrhomelabmatt
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          DIGEST=$(docker inspect --format '{{index .RepoDigests 0}}' "${IMAGE}:${GITHUB_SHA}")
+          {
+            echo "### Blog image pushed"
+            echo ""
+            echo '```'
+            echo "${DIGEST}"
+            echo '```'
+            echo ""
+            echo "Pin this digest in the blog Deployment (\`image: ...@sha256:...\`)."
+          } >> "${GITHUB_STEP_SUMMARY}"

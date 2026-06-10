@@ -4,3 +4,8 @@
 .kube/
 secrets/
 kubeconfig
+
+# Hugo build output (built in CI, never committed)
+apps/blog/site/public/
+apps/blog/site/resources/_gen/
+apps/blog/site/.hugo_build.lock

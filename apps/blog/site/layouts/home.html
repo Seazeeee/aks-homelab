@@ -1,0 +1,23 @@
+{{ define "main" }}
+<div class="eyebrow"><span class="dot"></span>WRITING</div>
+<h1 class="page-title">Notes from the homelab.</h1>
+<p class="page-desc">{{ site.Params.description }}</p>
+<div class="rule"></div>
+
+{{ $posts := where site.RegularPages "Section" "posts" }}
+{{ if $posts }}
+<ul class="post-list">
+  {{ range $posts }}
+  <li>
+    <a class="post-row" href="{{ .RelPermalink }}">
+      <span class="post-title">{{ .Title }}</span>
+      <span class="post-date">{{ .Date.Format "2006-01-02" }}</span>
+    </a>
+    {{ with .Description }}<p class="post-summary">{{ . }}</p>{{ end }}
+  </li>
+  {{ end }}
+</ul>
+{{ else }}
+<p class="empty">Nothing here yet.</p>
+{{ end }}
+{{ end }}
