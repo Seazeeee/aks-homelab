@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# homepage-index.html is the source copy; the served HTML is embedded in the
-# ConfigMap inside homepage.yaml, so only the manifest is applied.
+# The served HTML is embedded in the ConfigMap inside homepage.yaml — edit it
+# there. (The old homepage-index.html source copy was stale and removed.)
 resources:
   - homepage.yaml

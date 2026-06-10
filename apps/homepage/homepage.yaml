@@ -334,21 +334,6 @@ data:
           letter-spacing: 0.08em;
         }
 
-        /* BLOG PAGE */
-        .blog-eyebrow {
-          font-family: 'DM Mono', monospace;
-          font-size: 10px; color: var(--dim);
-          letter-spacing: 0.1em;
-          margin-bottom: 2rem;
-        }
-
-        .blog-empty {
-          font-size: 13px;
-          color: var(--dim);
-          font-weight: 300;
-          font-style: italic;
-        }
-
         /* LOGIN PAGE */
         .login-wrap {
           max-width: 360px;
@@ -580,7 +565,7 @@ data:
 
           <div class="nav-center">
             <a href="#" class="active" onclick="show('home',this);return false;">home</a>
-            <a href="#" onclick="show('blog',this);return false;">blog</a>
+            <a href="https://blog.seaze.dev/">blog</a>
             <a href="#" id="nav-login" onclick="show('login',this);return false;">login</a>
             <a href="#" id="nav-dashboard" style="display:none;" onclick="show('dashboard',this);return false;">dashboard</a>
           </div>
@@ -623,11 +608,6 @@ data:
           <p class="uc-desc">A personal corner of the internet. Projects, writing, and experiments in cloud infrastructure — coming soon.</p>
           <div class="uc-rule"></div>
           <div class="uc-meta">homelab · AKS · centralus</div>
-        </div>
-
-        <div class="page" id="page-blog">
-          <div class="blog-eyebrow">WRITING</div>
-          <p class="blog-empty">Nothing here yet.</p>
         </div>
 
         <div class="page" id="page-login">

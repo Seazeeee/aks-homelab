@@ -60,3 +60,16 @@ spec:
           - kind: Secret
             name: seazedev-tls
             namespace: envoy-gateway-system
+    - name: https-blog
+      protocol: HTTPS
+      port: 443
+      hostname: blog.seaze.dev
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: blog-tls
+            namespace: envoy-gateway-system

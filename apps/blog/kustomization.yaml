@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# site/ is the Hugo source — it's built into the container image by CI
+# (.github/workflows/blog-build.yml), not applied to the cluster.
+resources:
+  - blog.yaml
