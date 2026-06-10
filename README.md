@@ -11,12 +11,13 @@ Internet
   └─> Envoy Gateway (TLS terminate, :80/:443)
         └─> CrowdSec SecurityPolicy on the Gateway  ← screens ALL ingress first
               (ext-auth gRPC: IP bouncer + AppSec WAF)
-                ├─> Public    (seaze.dev/)          → Anubis (bot PoW) → Homepage
-                ├─> Protected (seaze.dev/dashboard) → Entra ID OIDC    → Homepage
-                └─> Auth      (auth.seaze.dev)      → Authentik server
+                ├─> Public    (seaze.dev/)           → Anubis (bot PoW) → Homepage
+                ├─> Blog      (blog.seaze.dev)       → Anubis (bot PoW) → Blog
+                ├─> Protected (dashboard.seaze.dev)  → Entra ID OIDC    → Homepage
+                └─> Auth      (auth.seaze.dev)       → Authentik server
 ```
 
-CrowdSec's `SecurityPolicy` is attached to the **Gateway**, so its IP bouncer + AppSec WAF screen all ingress *before* Envoy routes to any backend — it sits in front of Anubis, not behind it. A second `SecurityPolicy` on the `/dashboard` route enforces Entra ID OIDC via Authentik's embedded outpost. TLS is terminated with cert-manager-issued Let's Encrypt certs.
+CrowdSec's `SecurityPolicy` is attached to the **Gateway**, so its IP bouncer + AppSec WAF screen all ingress *before* Envoy routes to any backend — it sits in front of Anubis, not behind it. A second `SecurityPolicy` on the `dashboard.seaze.dev` route enforces Entra ID OIDC via Authentik's embedded outpost. TLS is terminated with cert-manager-issued Let's Encrypt certs.
 
 ## Secrets
 
