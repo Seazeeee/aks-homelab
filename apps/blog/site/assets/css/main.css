@@ -81,6 +81,22 @@ main {
   max-width: 720px; margin: 0 auto;
   width: 100%;
   padding: 4rem 2rem;
+  /* Soft entry on load. The blog's reading column (720px) is narrower than
+     the home/dashboard (960px), so a cross-origin nav into the blog snaps the
+     content width. Easing the column in (same fadeUp the homepage uses on its
+     .page.active) makes the arrival feel intentional rather than jarring.
+     Cross-document width tweening isn't possible across the seaze.dev /
+     blog.seaze.dev origin boundary, so we animate the destination instead. */
+  animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main { animation: none; }
 }
 
 .eyebrow {
