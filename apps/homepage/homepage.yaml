@@ -766,10 +766,19 @@ spec:
       labels:
         app: homepage
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: caddy
           image: acrhomelabmatt.azurecr.io/caddy:latest
           imagePullPolicy: Always
+          # Still runs as root binding :80 — the vendored caddy binary may
+          # carry file caps (see blog.yaml), so the non-root + :8080 move
+          # needs a getcap check on this image first.
+          securityContext:
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 80
           volumeMounts:
@@ -778,6 +787,10 @@ spec:
             - name: caddy-config
               mountPath: /etc/caddy/Caddyfile
               subPath: Caddyfile
+            - name: caddy-config-dir
+              mountPath: /config
+            - name: caddy-data-dir
+              mountPath: /data
           resources:
             requests:
               cpu: 10m
@@ -792,6 +805,10 @@ spec:
         - name: caddy-config
           configMap:
             name: caddy-config
+        - name: caddy-config-dir
+          emptyDir: {}
+        - name: caddy-data-dir
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
