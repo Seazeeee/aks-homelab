@@ -32,10 +32,26 @@ spec:
       labels:
         app: postgres
     spec:
+      automountServiceAccountToken: false
+      # Run directly as the alpine image's postgres user (uid/gid 70) instead
+      # of letting the entrypoint start as root and step down. Existing PGDATA
+      # is already owned by 70 (the root entrypoint chowned it on first init).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: postgres
           image: acrhomelabmatt.azurecr.io/postgres:17-alpine
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 5432
           env:
@@ -56,6 +72,12 @@ spec:
             - name: secrets-store
               mountPath: /mnt/secrets
               readOnly: true
+            # Writable scratch dirs required once the root fs is read-only:
+            # the unix socket lives in /var/run/postgresql.
+            - name: postgres-run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 50m
@@ -73,6 +95,10 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: postgres-keyvault
+        - name: postgres-run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

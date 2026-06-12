@@ -37,12 +37,27 @@ spec:
       labels:
         app: bible-bot
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: write-env
           image: acrhomelabmatt.azurecr.io/busybox:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
           command:
             - sh
             - -c
@@ -70,6 +85,10 @@ spec:
         - name: bible-bot
           image: acrhomelabmatt.azurecr.io/bible-bot:latest
           imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: 50m
