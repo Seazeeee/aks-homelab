@@ -111,6 +111,12 @@ grafana:
       root_url: https://grafana.seaze.dev
     security:
       cookie_secure: true
+    # New SSO users self-provision (allow_sign_up) into the default org. Pin the
+    # default role explicitly to Viewer so the "new user = read-only" guarantee
+    # is self-documenting and immune to a chart/Grafana default change — admins
+    # are granted by hand in the UI (org-role sync is off, see auth.generic_oauth).
+    users:
+      auto_assign_org_role: Viewer
     analytics:
       check_for_updates: false
       reporting_enabled: false
@@ -143,11 +149,22 @@ grafana:
       # grafana-oidc provider) — otherwise every user matches zero groups and
       # is rejected with "not a member of one of the required groups".
       # allowed_groups: grafana-admins, grafana-viewers
+      # Group-derived org roles are unreliable for now (the groups claim isn't
+      # dependably present), so OAuth org-role sync is OFF: Grafana will NOT
+      # overwrite a user's org role on login, and org roles are managed by hand
+      # in the UI instead (they persist in the DB). role_attribute_path below
+      # is therefore IGNORED while this is true. Flip back to false once the
+      # groups claim is dependable to restore group-driven roles. Server Admin
+      # (isGrafanaAdmin) is unaffected either way — allow_assign_grafana_admin
+      # is unset, so OAuth never touches it; the break-glass admin stays
+      # reconciled from Key Vault on every boot.
+      skip_org_role_sync: true
       # Authentik group -> Grafana org role; grafana-viewers is read-only.
       # Null-safe: when no `groups` claim is present, `groups[*]` is null and
       # bare contains(null, ...) raises a JMESPath type error that surfaces as
       # "User sync failed". `|| `[]`` coerces the missing claim to an empty
       # array so the path degrades to Viewer instead of failing the login.
+      # (Kept for when skip_org_role_sync is flipped back to false.)
       role_attribute_path: "contains(groups[*] || `[]`, 'grafana-admins') && 'Admin' || 'Viewer'"
   persistence:
     enabled: true
