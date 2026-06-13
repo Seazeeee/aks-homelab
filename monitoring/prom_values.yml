@@ -138,9 +138,17 @@ grafana:
       # policy bindings are ever loosened, only these groups can log in.
       # (Grafana splits this list on spaces AND commas, hence no spaces in
       # the group names.)
+      # DO NOT re-enable until the OIDC provider actually emits a `groups`
+      # claim (see scopes above + the groups property-mapping on the
+      # grafana-oidc provider) — otherwise every user matches zero groups and
+      # is rejected with "not a member of one of the required groups".
       # allowed_groups: grafana-admins, grafana-viewers
       # Authentik group -> Grafana org role; grafana-viewers is read-only.
-      role_attribute_path: contains(groups[*], 'grafana-admins') && 'Admin' || 'Viewer'
+      # Null-safe: when no `groups` claim is present, `groups[*]` is null and
+      # bare contains(null, ...) raises a JMESPath type error that surfaces as
+      # "User sync failed". `|| `[]`` coerces the missing claim to an empty
+      # array so the path degrades to Viewer instead of failing the login.
+      role_attribute_path: "contains(groups[*] || `[]`, 'grafana-admins') && 'Admin' || 'Viewer'"
   persistence:
     enabled: true
     storageClassName: managed-csi
