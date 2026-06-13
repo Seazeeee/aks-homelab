@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - helmrepository.yaml
+  - helmrelease.yaml
+# prom_values.yml stays the single source of truth for the chart values; it is
+# surfaced to the HelmRelease as a ConfigMap (stable name, no hash suffix, so
+# the valuesFrom reference resolves).
+configMapGenerator:
+  - name: monitoring-values
+    namespace: monitoring
+    files:
+      - values.yaml=prom_values.yml
+    options:
+      disableNameSuffixHash: true
