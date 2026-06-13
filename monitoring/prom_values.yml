@@ -1,0 +1,172 @@
+# kube-prometheus-stack values, trimmed for a small cost-pressured AKS
+# cluster (2-3 B-series nodes): Alertmanager off, short retention, explicit
+# (small) resource requests, StandardSSD storage. Grafana is the read
+# surface; dashboard.seaze.dev will later embed summary views from it.
+
+# AKS manages the control plane — controller-manager, scheduler, etcd and
+# kube-proxy endpoints are not scrapeable from the cluster, so leave the
+# targets and their recording/alerting rules off instead of accumulating
+# permanently-down targets.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# No alert-routing stack yet (nowhere to page); Grafana is how metrics get
+# read. Revisit when alerting is worth a receiver.
+alertmanager:
+  enabled: false
+
+defaultRules:
+  rules:
+    alertmanager: false
+    etcd: false
+    kubeControllerManager: false
+    kubeProxy: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    # Keep the TSDB inside the 10Gi PVC with headroom for WAL + compaction.
+    retentionSize: 8GB
+    # Single-tenant cluster: pick up ServiceMonitors/PodMonitors from any
+    # namespace regardless of helm release labels, so future apps (bible-bot,
+    # mtg) just ship a monitor next to their Deployment.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1536Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: managed-csi
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+# node-exporter is the one component that legitimately needs host access
+# (hostNetwork + /proc + /sys mounts) — that is what host-level metrics are.
+# The chart already runs it as non-root with a read-only rootfs.
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 24Mi
+    limits:
+      memory: 64Mi
+
+grafana:
+  # Stable Service name for the HTTPRoute/ReferenceGrant instead of the
+  # release-prefixed default.
+  fullnameOverride: grafana
+  # Admin creds come from the Key Vault-synced Secret (SPC grafana-keyvault);
+  # mounting the CSI volume below is what triggers the Secrets Store driver
+  # to materialize it — Secret sync only happens while a pod mounts the SPC.
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  extraSecretMounts:
+    - name: grafana-keyvault
+      mountPath: /mnt/secrets
+      readOnly: true
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: grafana-keyvault
+  # OIDC client id/secret arrive as GF_AUTH_GENERIC_OAUTH_* env vars from the
+  # Key Vault-synced Secret grafana-oidc (same SPC as grafana-admin) — the
+  # grafana.ini block below holds only non-secret endpoints.
+  envFromSecret: grafana-oidc
+  grafana.ini:
+    server:
+      root_url: https://grafana.seaze.dev
+    security:
+      cookie_secure: true
+    analytics:
+      check_for_updates: false
+      reporting_enabled: false
+    auth:
+      # Logging out of Grafana also ends the Authentik session; otherwise
+      # auto_login below would silently sign the user straight back in.
+      signout_redirect_url: https://auth.seaze.dev/application/o/grafana-oidc/end-session/
+    # SSO against Authentik. The forward-auth gate on the HTTPRoute stays in
+    # front (unauthenticated traffic never reaches Grafana); by the time this
+    # flow runs the browser already has an Authentik session, so the OIDC
+    # redirect completes without a prompt.
+    auth.generic_oauth:
+      enabled: true
+      name: authentik
+      # Skip Grafana's own login screen. Break-glass: the admin form (Key
+      # Vault creds) is still reachable at /login?disableAutoLogin=true.
+      auto_login: true
+      scopes: openid profile email
+      auth_url: https://auth.seaze.dev/application/o/authorize/
+      token_url: https://auth.seaze.dev/application/o/token/
+      api_url: https://auth.seaze.dev/application/o/userinfo/
+      use_pkce: true
+      allow_sign_up: true
+      # In-repo fail-closed backstop: even if the Authentik application's
+      # policy bindings are ever loosened, only these groups can log in.
+      # (Grafana splits this list on spaces AND commas, hence no spaces in
+      # the group names.)
+      allowed_groups: grafana-admins, grafana-viewers
+      # Authentik group -> Grafana org role; grafana-viewers is read-only.
+      role_attribute_path: contains(groups[*], 'grafana-admins') && 'Admin' || 'Viewer'
+  persistence:
+    enabled: true
+    storageClassName: managed-csi
+    size: 4Gi
+  # RWO Azure disk: a rolling update deadlocks waiting to attach the volume
+  # a second time, so replace the pod instead.
+  deploymentStrategy:
+    type: Recreate
+  # fsGroup (472, chart default securityContext) already makes the PVC
+  # writable; the chart's chown init container would be the only root
+  # container in the stack, so keep it off.
+  initChownData:
+    enabled: false
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+  # Skip the helm-test pod (extra image, no value in GitOps flow).
+  testFramework:
+    enabled: false

@@ -86,3 +86,16 @@ spec:
           - kind: Secret
             name: dashboard-tls
             namespace: envoy-gateway-system
+    - name: https-grafana
+      protocol: HTTPS
+      port: 443
+      hostname: grafana.seaze.dev
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: grafana-tls
+            namespace: envoy-gateway-system

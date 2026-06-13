@@ -50,13 +50,13 @@ jobs:
               -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
               "$@"
           }
-          for path in gateway cluster security apps; do
+          for path in gateway cluster security apps monitoring; do
             echo "::group::kustomize build $path"
             kustomize build "$path" | conform -
             echo "::endgroup::"
           done
           echo "::group::flux Kustomizations"
-          conform clusters/aks-homelab/infrastructure.yaml clusters/aks-homelab/apps.yaml
+          conform clusters/aks-homelab/infrastructure.yaml clusters/aks-homelab/apps.yaml clusters/aks-homelab/monitoring.yaml
           echo "::endgroup::"
 
   secret-scan:

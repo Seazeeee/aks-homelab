@@ -55,3 +55,45 @@ spec:
         - X-Authentik-Email
         - X-Authentik-Name
         - X-Authentik-Uid
+---
+# Gates grafana.seaze.dev behind the same Authentik embedded-outpost forward
+# auth as dashboard.seaze.dev. Grafana keeps its own login on top (admin creds
+# from Key Vault) — this policy stops unauthenticated traffic from ever
+# reaching the Grafana login page or its API.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: authentik-forwardauth-grafana
+  namespace: default
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: homelab-route-grafana
+  extAuth:
+    failOpen: false
+    recomputeRoute: true
+    headersToExtAuth:
+      - X-Forwarded-For
+      - X-Real-Ip
+      - X-Forwarded-Host
+      - X-Forwarded-Proto
+      - accept
+      - cookie
+      - authorization
+    http:
+      backendRefs:
+        - kind: Service
+          name: authentik-server
+          namespace: authentik
+          port: 80
+      path: /outpost.goauthentik.io/auth/envoy
+      headersToBackend:
+        - cookie
+        - authorization
+        - X-Forwarded-Host
+        - X-Forwarded-Proto
+        - X-Authentik-Username
+        - X-Authentik-Email
+        - X-Authentik-Name
+        - X-Authentik-Uid

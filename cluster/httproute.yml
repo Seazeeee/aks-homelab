@@ -231,3 +231,64 @@ spec:
               type: ReplaceFullPath
               replaceFullPath: /
             statusCode: 301
+---
+# Authentik embedded-outpost callback path for grafana.seaze.dev — same
+# pattern as homelab-route-outpost on dashboard.seaze.dev.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: homelab-route-grafana-outpost
+  namespace: default
+spec:
+  parentRefs:
+    - name: homelab-gateway
+      namespace: envoy-gateway-system
+      sectionName: https-grafana
+  hostnames:
+    - grafana.seaze.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /outpost.goauthentik.io
+      backendRefs:
+        - name: authentik-server
+          namespace: authentik
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: homelab-route-grafana
+  namespace: default
+spec:
+  parentRefs:
+    - name: homelab-gateway
+      namespace: envoy-gateway-system
+      sectionName: https-grafana
+  hostnames:
+    - grafana.seaze.dev
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      # Same invariant as the dashboard route: strip the identity headers the
+      # Authentik ext-auth does NOT overwrite (Username/Name/Email/Uid are in
+      # headersToBackend and always replaced by the outpost; removal here runs
+      # after ext-auth injection and would drop the real values).
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - X-Authentik-Groups
+              - X-Authentik-Jwt
+              - X-Authentik-Meta-Jwks
+              - X-Authentik-Meta-Outpost
+              - X-Authentik-Meta-Provider
+              - X-Authentik-Meta-App
+              - X-Authentik-Meta-Version
+      backendRefs:
+        - name: grafana
+          namespace: monitoring
+          port: 80

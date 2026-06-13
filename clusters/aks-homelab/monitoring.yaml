@@ -1,0 +1,19 @@
+# Monitoring is its own Flux Kustomization so the (heavy) kube-prometheus-stack
+# HelmRelease can fail/retry without blocking the infra paths. Route-before-
+# policy safety is unchanged: the grafana.seaze.dev HTTPRoute lives in
+# ./cluster, which dependsOn ./security where its Authentik SecurityPolicy is
+# defined — same invariant as dashboard.seaze.dev.
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: monitoring
+  namespace: flux-system
+spec:
+  interval: 10m
+  retryInterval: 1m
+  path: ./monitoring
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system

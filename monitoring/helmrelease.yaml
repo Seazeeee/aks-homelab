@@ -1,0 +1,49 @@
+# kube-prometheus-stack: Prometheus Operator + Prometheus + Grafana +
+# node-exporter + kube-state-metrics. In-cluster replacement for the Pi-Stack
+# monitoring services (VictoriaMetrics/Grafana/Caddy) — Envoy Gateway already
+# covers Caddy's TLS/proxy role, and Prometheus replaces VictoriaMetrics as
+# the TSDB.
+#
+# Version is PINNED — chart upgrades are deliberate (bump here, review, merge),
+# never automatic. The HelmRepository is still polled so a stale index doesn't
+# block reconciliation.
+#
+# CRD policy is CreateReplace on both install and upgrade: the Prometheus
+# Operator CRDs ship inside this chart and must track the pinned version, and
+# helm's default of skipping CRDs on upgrade would strand them.
+#
+# Grafana admin creds resolve at runtime from the CSI Key Vault mount (SPC
+# grafana-keyvault in cluster/secretprovider.yml) via admin.existingSecret in
+# prom_values.yml — nothing secret lives in Git.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  releaseName: monitoring
+  interval: 30m
+  # First install pulls several images and registers large CRDs; the default
+  # 5m timeout is too tight on small nodes.
+  timeout: 10m
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "86.2.2"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: monitoring
+      interval: 12h
+  valuesFrom:
+    - kind: ConfigMap
+      name: monitoring-values
+      valuesKey: values.yaml
