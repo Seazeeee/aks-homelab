@@ -1,0 +1,88 @@
+# kube-prometheus-stack values — PROMETHEUS side: Operator, Prometheus,
+# Alertmanager, kube-state-metrics, node-exporter, default rules, and the
+# control-plane scrape toggles. Grafana's values live in grafana_values.yml;
+# both files are merged into the single HelmRelease via valuesFrom (see
+# helmrelease.yaml + kustomization.yaml).
+#
+# Trimmed for a small cost-pressured AKS cluster (2-3 B-series nodes):
+# Alertmanager off, short retention, explicit (small) resource requests,
+# StandardSSD storage.
+
+# AKS manages the control plane — controller-manager, scheduler, etcd and
+# kube-proxy endpoints are not scrapeable from the cluster, so leave the
+# targets and their recording/alerting rules off instead of accumulating
+# permanently-down targets.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+# No alert-routing stack yet (nowhere to page); Grafana is how metrics get
+# read. Revisit when alerting is worth a receiver.
+alertmanager:
+  enabled: false
+
+defaultRules:
+  rules:
+    alertmanager: false
+    etcd: false
+    kubeControllerManager: false
+    kubeProxy: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    # Keep the TSDB inside the 10Gi PVC with headroom for WAL + compaction.
+    retentionSize: 8GB
+    # Single-tenant cluster: pick up ServiceMonitors/PodMonitors from any
+    # namespace regardless of helm release labels, so future apps (bible-bot,
+    # mtg) just ship a monitor next to their Deployment.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1536Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: managed-csi
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+
+# node-exporter is the one component that legitimately needs host access
+# (hostNetwork + /proc + /sys mounts) — that is what host-level metrics are.
+# The chart already runs it as non-root with a read-only rootfs.
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 24Mi
+    limits:
+      memory: 64Mi

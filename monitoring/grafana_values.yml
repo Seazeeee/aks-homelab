@@ -1,87 +1,11 @@
-# kube-prometheus-stack values, trimmed for a small cost-pressured AKS
-# cluster (2-3 B-series nodes): Alertmanager off, short retention, explicit
-# (small) resource requests, StandardSSD storage. Grafana is the read
-# surface; dashboard.seaze.dev will later embed summary views from it.
-
-# AKS manages the control plane — controller-manager, scheduler, etcd and
-# kube-proxy endpoints are not scrapeable from the cluster, so leave the
-# targets and their recording/alerting rules off instead of accumulating
-# permanently-down targets.
-kubeControllerManager:
-  enabled: false
-kubeScheduler:
-  enabled: false
-kubeEtcd:
-  enabled: false
-kubeProxy:
-  enabled: false
-
-# No alert-routing stack yet (nowhere to page); Grafana is how metrics get
-# read. Revisit when alerting is worth a receiver.
-alertmanager:
-  enabled: false
-
-defaultRules:
-  rules:
-    alertmanager: false
-    etcd: false
-    kubeControllerManager: false
-    kubeProxy: false
-    kubeSchedulerAlerting: false
-    kubeSchedulerRecording: false
-
-prometheusOperator:
-  resources:
-    requests:
-      cpu: 25m
-      memory: 64Mi
-    limits:
-      memory: 256Mi
-
-prometheus:
-  prometheusSpec:
-    retention: 7d
-    # Keep the TSDB inside the 10Gi PVC with headroom for WAL + compaction.
-    retentionSize: 8GB
-    # Single-tenant cluster: pick up ServiceMonitors/PodMonitors from any
-    # namespace regardless of helm release labels, so future apps (bible-bot,
-    # mtg) just ship a monitor next to their Deployment.
-    serviceMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelectorNilUsesHelmValues: false
-    resources:
-      requests:
-        cpu: 100m
-        memory: 512Mi
-      limits:
-        memory: 1536Mi
-    storageSpec:
-      volumeClaimTemplate:
-        spec:
-          storageClassName: managed-csi
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 10Gi
-
-kube-state-metrics:
-  resources:
-    requests:
-      cpu: 10m
-      memory: 32Mi
-    limits:
-      memory: 128Mi
-
-# node-exporter is the one component that legitimately needs host access
-# (hostNetwork + /proc + /sys mounts) — that is what host-level metrics are.
-# The chart already runs it as non-root with a read-only rootfs.
-prometheus-node-exporter:
-  resources:
-    requests:
-      cpu: 10m
-      memory: 24Mi
-    limits:
-      memory: 64Mi
-
+# kube-prometheus-stack values — GRAFANA sub-chart only. Merged with
+# prometheus_values.yml into the single HelmRelease via valuesFrom (see
+# helmrelease.yaml + kustomization.yaml). Grafana is the read surface for the
+# Prometheus TSDB; dashboard.seaze.dev will later embed summary views from it.
+#
+# SSO is via Authentik (auth.generic_oauth) with a forward-auth outpost gating
+# the route; admin + OIDC creds resolve from Azure Key Vault (CSI) at runtime —
+# nothing secret lives here.
 grafana:
   # Stable Service name for the HTTPRoute/ReferenceGrant instead of the
   # release-prefixed default.
@@ -113,8 +37,9 @@ grafana:
       cookie_secure: true
     # New SSO users self-provision (allow_sign_up) into the default org. Pin the
     # default role explicitly to Viewer so the "new user = read-only" guarantee
-    # is self-documenting and immune to a chart/Grafana default change — admins
-    # are granted by hand in the UI (org-role sync is off, see auth.generic_oauth).
+    # is self-documenting and immune to a chart/Grafana default change — Admin is
+    # granted via grafana-admins group membership (role sync on, see
+    # auth.generic_oauth.role_attribute_path).
     users:
       auto_assign_org_role: Viewer
     analytics:
@@ -149,22 +74,14 @@ grafana:
       # grafana-oidc provider) — otherwise every user matches zero groups and
       # is rejected with "not a member of one of the required groups".
       # allowed_groups: grafana-admins, grafana-viewers
-      # Group-derived org roles are unreliable for now (the groups claim isn't
-      # dependably present), so OAuth org-role sync is OFF: Grafana will NOT
-      # overwrite a user's org role on login, and org roles are managed by hand
-      # in the UI instead (they persist in the DB). role_attribute_path below
-      # is therefore IGNORED while this is true. Flip back to false once the
-      # groups claim is dependable to restore group-driven roles. Server Admin
-      # (isGrafanaAdmin) is unaffected either way — allow_assign_grafana_admin
-      # is unset, so OAuth never touches it; the break-glass admin stays
-      # reconciled from Key Vault on every boot.
-      skip_org_role_sync: true
       # Authentik group -> Grafana org role; grafana-viewers is read-only.
+      # OAuth org-role sync is ON: the role is derived from the `groups` claim
+      # on every login (now that Grafana actually requests the groups scope), so
+      # membership in grafana-admins -> Org Admin, everyone else -> Viewer.
       # Null-safe: when no `groups` claim is present, `groups[*]` is null and
       # bare contains(null, ...) raises a JMESPath type error that surfaces as
       # "User sync failed". `|| `[]`` coerces the missing claim to an empty
       # array so the path degrades to Viewer instead of failing the login.
-      # (Kept for when skip_org_role_sync is flipped back to false.)
       role_attribute_path: "contains(groups[*] || `[]`, 'grafana-admins') && 'Admin' || 'Viewer'"
   persistence:
     enabled: true

@@ -4,13 +4,16 @@ resources:
   - namespace.yaml
   - helmrepository.yaml
   - helmrelease.yaml
-# prom_values.yml stays the single source of truth for the chart values; it is
-# surfaced to the HelmRelease as a ConfigMap (stable name, no hash suffix, so
-# the valuesFrom reference resolves).
+# Chart values are split per-application: prometheus_values.yml (Operator,
+# Prometheus, Alertmanager, exporters, rules) and grafana_values.yml (Grafana
+# sub-chart). Both are surfaced as keys on one ConfigMap (stable name, no hash
+# suffix so the valuesFrom references resolve) and merged by the HelmRelease's
+# valuesFrom in order (prometheus then grafana) — see helmrelease.yaml.
 configMapGenerator:
   - name: monitoring-values
     namespace: monitoring
     files:
-      - values.yaml=prom_values.yml
+      - prometheus.yaml=prometheus_values.yml
+      - grafana.yaml=grafana_values.yml
     options:
       disableNameSuffixHash: true
