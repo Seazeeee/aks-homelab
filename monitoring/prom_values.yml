@@ -138,7 +138,7 @@ grafana:
       # policy bindings are ever loosened, only these groups can log in.
       # (Grafana splits this list on spaces AND commas, hence no spaces in
       # the group names.)
-      allowed_groups: grafana-admins, grafana-viewers
+      # allowed_groups: grafana-admins, grafana-viewers
       # Authentik group -> Grafana org role; grafana-viewers is read-only.
       role_attribute_path: contains(groups[*], 'grafana-admins') && 'Admin' || 'Viewer'
   persistence:
